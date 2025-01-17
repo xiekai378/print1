@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Layout as AntLayout, Menu } from 'antd';
 import {
   HomeOutlined,
@@ -12,9 +12,11 @@ import {
 } from '@ant-design/icons';
 import styled from 'styled-components';
 import { useRouter, usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 const { Header, Sider, Content } = AntLayout;
 
+// 使用styled-components的缓存功能
 const StyledLayout = styled(AntLayout)`
   min-height: 100vh;
 `;
@@ -38,13 +40,32 @@ const StyledContent = styled(Content)`
   background: #fff;
   border-radius: 4px;
   padding: 24px;
+  min-height: 280px;
 `;
+
+// 使用 React.memo 优化菜单项渲染
+const MenuComponent = React.memo(({ items, pathname, onMenuClick }: {
+  items: any[];
+  pathname: string;
+  onMenuClick: (key: string) => void;
+}) => (
+  <Menu
+    mode="inline"
+    selectedKeys={[pathname]}
+    style={{ height: '100%', borderRight: 0 }}
+    items={items}
+    onClick={({ key }) => onMenuClick(key)}
+  />
+));
+
+MenuComponent.displayName = 'MenuComponent';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const menuItems = [
+  // 使用 useMemo 缓存菜单项配置
+  const menuItems = useMemo(() => [
     {
       key: '/home',
       icon: <HomeOutlined />,
@@ -157,7 +178,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         },
       ],
     },
-  ];
+  ], []); // 空依赖数组，因为菜单配置是静态的
+
+  // 使用 useMemo 缓存路由跳转函数
+  const handleMenuClick = useMemo(() => (key: string) => {
+    router.push(key);
+  }, [router]);
 
   return (
     <StyledLayout>
@@ -165,13 +191,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <StyledHeader>
           <Logo>印刷报价系统</Logo>
         </StyledHeader>
-        <Menu
-          mode="inline"
-          defaultSelectedKeys={[pathname]}
-          defaultOpenKeys={['/personalized', '/order-customer', '/data', '/financial', '/user']}
-          style={{ height: '100%', borderRight: 0 }}
+        <MenuComponent
           items={menuItems}
-          onClick={({ key }) => router.push(key)}
+          pathname={pathname}
+          onMenuClick={handleMenuClick}
         />
       </Sider>
       <AntLayout>
